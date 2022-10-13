@@ -32,7 +32,7 @@ public class User implements Serializable {
     private String name;
 
     @TableField("sex")
-    private Boolean sex;
+    private Integer sex;
 
     @TableField("age")
     private Integer age;
