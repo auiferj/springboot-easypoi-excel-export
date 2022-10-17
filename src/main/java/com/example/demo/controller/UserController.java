@@ -22,6 +22,7 @@ public class UserController {
     @Autowired
     private UserService userService;
     /**
+     * 单sheet
      * excel批量用户导出
      */
     @GetMapping("export")
@@ -30,10 +31,20 @@ public class UserController {
     }
 
     /**
+     * 单sheet
      * excel批量用户导出
      */
     @GetMapping("/exportImage")
     public void exportUsersToExcel(HttpServletResponse response) {
         userService.exportUsersImage(response);
+    }
+
+    /**
+     * 多sheet
+     * excel多sheet导出
+     */
+    @GetMapping("/export-for-sheets")
+    public void exportSheetUsers(HttpServletResponse response) {
+        userService.exportSheetUsers(response);
     }
 }

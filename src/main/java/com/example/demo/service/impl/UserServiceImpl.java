@@ -2,24 +2,25 @@ package com.example.demo.service.impl;
 
 import cn.afterturn.easypoi.excel.ExcelExportUtil;
 import cn.afterturn.easypoi.excel.entity.ExportParams;
-import com.example.demo.entity.ExportUser;
-import com.example.demo.entity.ExportUserImage;
-import com.example.demo.entity.User;
+import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.demo.entity.*;
 import com.example.demo.dao.UserMapper;
+import com.example.demo.service.OperationLogService;
 import com.example.demo.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * <p>
@@ -31,6 +32,9 @@ import java.util.List;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    @Autowired
+    private OperationLogService operationLogService;
 
     @Override
     public void exportUsers(HttpServletResponse response) {
@@ -93,6 +97,70 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
+    @Override
+    public void exportSheetUsers(HttpServletResponse response) {
+        //功能描述：把同一个表格多个sheet测试结果重新输出.
+        Workbook workBook = null;
+        try {
+            // 创建参数对象（用来设定excel的sheet1内容等信息）
+            ExportParams userExportParams = new ExportParams();
+            // 设置sheet得名称
+            userExportParams.setSheetName("用户表");
+            // 设置sheet表头名称
+            userExportParams.setTitle("用户列表");
+            // 创建sheet1使用得map
+            Map<String, Object> userExportMap = new HashMap<>();
+            // title的参数为ExportParams类型，目前仅仅在ExportParams中设置了sheetName
+            userExportMap.put("title", userExportParams);
+            // 模版导出对应得实体类型
+            userExportMap.put("entity", ExportUser.class);
+            //转成导出vo类型
+            List<ExportUser> users = this.changeTypeToExportUser(this.list());
+            // sheet1中要填充得数据
+            userExportMap.put("data", users);
+            // 创建参数对象（用来设定excel的sheet2内容等信息）
+            ExportParams logInfoExportParams = new ExportParams();
+            logInfoExportParams.setTitle("日志列表");
+            logInfoExportParams.setSheetName("日志表");
+            // 创建sheet2使用的map
+            Map<String, Object> logInfoExportMap = new HashMap<>();
+            logInfoExportMap.put("title", logInfoExportParams);
+            logInfoExportMap.put("entity", ExportLog.class);
+            //查询log数据
+            List<OperationLog> operationLogs = operationLogService.list();
+            //转成导出vo类型
+            List<ExportLog> logInfos = this.changeTypeToExportLog(operationLogs);
+            // sheet2中要填充得数据
+            logInfoExportMap.put("data", logInfos);
+            // 将sheet1、sheet2使用得map进行包装
+            List<Map<String, Object>> sheetsList = new ArrayList<>();
+            //后续增加sheet组，则后面继续追加即可;
+            sheetsList.add(userExportMap);
+            sheetsList.add(logInfoExportMap);
+            // 执行方法
+            workBook = ExcelExportUtil.exportExcel(sheetsList, ExcelType.HSSF);
+            //设置编码格式
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            //设置内容类型
+            response.setContentType("application/octet-stream");
+            //设置头及文件命名。
+            response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("用户及操作日志导出.xls", StandardCharsets.UTF_8.name()));
+            //写出流
+            workBook.write(response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (workBook != null) {
+                try {
+                    //强行关流
+                    workBook.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     /**
      * 转成导出vo
      *
@@ -127,6 +195,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 //正常情况是获取数据库中每个用户对象的头像地址 --> this.image = user.Img();
                 exportUserImage.setImage("static/image/avatar.png");
                 list.add(exportUserImage);
+            }
+            return list;
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ExportLog> changeTypeToExportLog(List<OperationLog> operationLogs) {
+        if(CollectionUtils.isNotEmpty(operationLogs)){
+            List<ExportLog> list = new ArrayList<>();
+            for (OperationLog operationLog : operationLogs) {
+                ExportLog exportUser = new ExportLog();
+                BeanUtils.copyProperties(operationLog,exportUser);
+                list.add(exportUser);
             }
             return list;
         }
