@@ -19,4 +19,10 @@ public interface UserService extends IService<User> {
      * @param response
      */
     void exportUsers(HttpServletResponse response);
+
+    /**
+     * excel批量用户导出
+     * @param response
+     */
+    void exportUsersImage(HttpServletResponse response);
 }

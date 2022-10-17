@@ -28,4 +28,12 @@ public class UserController {
     public void exportUsers(HttpServletResponse response) {
         userService.exportUsers(response);
     }
+
+    /**
+     * excel批量用户导出
+     */
+    @GetMapping("/exportImage")
+    public void exportUsersToExcel(HttpServletResponse response) {
+        userService.exportUsersImage(response);
+    }
 }

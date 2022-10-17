@@ -9,6 +9,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * <p>
@@ -54,6 +55,12 @@ public class User implements Serializable {
 
     @TableField("update_time")
     private LocalDateTime updateTime;
+
+    @TableField("born_date")
+    private Date bornDate;
+
+    @TableField("enter_school_time")
+    private String enterSchoolTime;
 
 
 }
