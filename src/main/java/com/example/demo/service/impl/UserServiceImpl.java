@@ -2,6 +2,7 @@ package com.example.demo.service.impl;
 
 import cn.afterturn.easypoi.excel.ExcelExportUtil;
 import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.TemplateExportParams;
 import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.entity.*;
@@ -17,10 +18,13 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
@@ -158,6 +162,51 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    @Override
+    public void exportPdfUsers(HttpServletResponse response) {
+        //准备导出数据
+        Map<String, Object> mapList = new HashMap<>();
+        //准备导出数据
+        List<Map<String, Object>> listUsers = new ArrayList<>();
+        try {
+            //指定excel模板；我这是在项目根目录下创建了一个template文件夹存放excel导出模板文件
+            TemplateExportParams params = new TemplateExportParams("templates/user_export_template.xlsx");
+            //从数据库查询到数据
+            List<User> users = this.list();
+            //定义一个原子序列
+            AtomicInteger atomicInteger = new AtomicInteger(1);
+            users.forEach(user -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", atomicInteger.getAndIncrement());
+                map.put("name", user.getName());
+                map.put("age", user.getAge());
+                map.put("sex", user.getSex());
+                map.put("address", user.getAddress());
+                map.put("describes", user.getDescribes());
+                //添加到集合中，一个map就是一行
+                listUsers.add(map);
+            });
+            mapList.put("users", listUsers);
+            //调用exportExcel()
+            Workbook workbook = ExcelExportUtil.exportExcel(params, mapList);
+            //定义一个字节输出流
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            //将excel文件写入到新的输出流
+            workbook.write(outputStream);
+            //将字节数组放置到内存里面
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            //导入xls包引用Workbook区分poi提供的Workbook
+            com.spire.xls.Workbook wb = new com.spire.xls.Workbook();
+            wb.loadFromStream(inputStream);
+            //设置字段在一页中显示全
+            wb.getConverterSetting().setSheetFitToPage(true);
+            //指定并指定目录保存文件
+            wb.saveToFile("D:/pdf/学生基本信息表.pdf");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

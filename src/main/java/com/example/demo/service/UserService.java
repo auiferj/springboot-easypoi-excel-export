@@ -31,4 +31,10 @@ public interface UserService extends IService<User> {
      * @param response
      */
     void exportSheetUsers(HttpServletResponse response);
+
+    /**
+     * 导出pdf文件
+     * @param response
+     */
+    void exportPdfUsers(HttpServletResponse response);
 }

@@ -47,4 +47,12 @@ public class UserController {
     public void exportSheetUsers(HttpServletResponse response) {
         userService.exportSheetUsers(response);
     }
+
+    /**
+     * 导出pdf文件
+     */
+    @GetMapping("/export-for-pdf")
+    public void exportPdfUsers(HttpServletResponse response) {
+        userService.exportPdfUsers(response);
+    }
 }
