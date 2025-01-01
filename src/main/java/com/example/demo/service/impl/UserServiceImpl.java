@@ -7,9 +7,11 @@ import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.entity.*;
 import com.example.demo.dao.UserMapper;
+import com.example.demo.enums.ContentTypeEnum;
 import com.example.demo.service.OperationLogService;
 import com.example.demo.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.utils.FileUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.BeanUtils;
@@ -42,62 +44,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public void exportUsers(HttpServletResponse response) {
-        try {
-            //从数据库查询到数据
-            List<User> users = this.list();
-            //设置信息头，告诉浏览器内容为excel类型
-            response.setHeader("content-Type", "application/vnd.ms-excel");
-            //文件名称
-            String fileName = "学生信息表.xls";
-            //sheet名称
-            String sheetName = "学生列表";
-            fileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
-            //设置下载名称
-            response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
-            //字节流输出
-            ServletOutputStream out = response.getOutputStream();
+        //从数据库查询到数据
+        List<User> users = this.list();
+        if(CollectionUtils.isEmpty(users)){
+            throw new RuntimeException("暂无数据");
+        }
+        //转成对应的类型;要不然会报错，虽然也可以导出成功。
+        List<ExportUser> exportList = changeTypeToExportUser(users);
+        try (ServletOutputStream out = response.getOutputStream()){
+            FileUtils.prepareResponseHeaders(response, "学生信息表-" +System.currentTimeMillis() + ".xlsx", ContentTypeEnum.XLSX);
             //设置excel参数
             ExportParams params = new ExportParams();
-            //设置sheet名
-            params.setSheetName(sheetName);
-            //设置标题
+            params.setSheetName("学生列表");
             params.setTitle("学生信息表");
-            //转成对应的类型;要不然会报错，虽然也可以导出成功。
-            List<ExportUser> exportUsers = changeTypeToExportUser(users);
-            //导入excel
-            Workbook workbook = ExcelExportUtil.exportExcel(params, ExportUser.class,exportUsers );
-            //写入
-            workbook.write(out);
+            try (Workbook workbook = ExcelExportUtil.exportExcel(params, ExportUser.class, exportList)) {
+                workbook.write(out);
+            } catch (IOException e) {
+                log.error("导出Excel时发生异常", e);
+                throw new RuntimeException("导出失败");
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("获取输出流时发生异常", e);
+            throw new RuntimeException("导出失败");
         }
     }
 
     @Override
     public void exportUsersImage(HttpServletResponse response) {
-        try {
-            //从数据库查询到数据
-            List<User> users = this.list();
-            //设置信息头，告诉浏览器内容为excel类型
-            response.setHeader("content-Type", "application/vnd.ms-excel");
-            //设置下载名称
-            response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("学生信息表.xls", StandardCharsets.UTF_8.name()));
-            //字节流输出
-            ServletOutputStream out = response.getOutputStream();
+        //从数据库查询到数据
+        List<User> users = this.list();
+        if(CollectionUtils.isEmpty(users)){
+            throw new RuntimeException("暂无数据");
+        }
+        //转成对应的类型;要不然会报错，虽然也可以导出成功
+        List<ExportUserImage> exportList = this.changeTypeToExportUserImage(users);
+        try (ServletOutputStream out = response.getOutputStream()){
+            FileUtils.prepareResponseHeaders(response, "学生信息表-" +System.currentTimeMillis() + ".xlsx", ContentTypeEnum.XLSX);
             //设置excel参数
             ExportParams params = new ExportParams();
-            //设置sheet名名称
             params.setSheetName("学生列表");
-            //设置标题
             params.setTitle("学生信息表");
-            //转成对应的类型;要不然会报错，虽然也可以导出成功
-            List<ExportUserImage> exportUsers = this.changeTypeToExportUserImage(users);
-            //导入excel
-            Workbook workbook = ExcelExportUtil.exportExcel(params, ExportUserImage.class, exportUsers);
-            //写入
-            workbook.write(out);
+            try (Workbook workbook = ExcelExportUtil.exportExcel(params, ExportUserImage.class, exportList)) {
+                workbook.write(out);
+            } catch (IOException e) {
+                log.error("导出Excel时发生异常", e);
+                throw new RuntimeException("导出失败");
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("导出Excel时发生异常", e);
+            throw new RuntimeException("导出失败");
         }
     }
 
